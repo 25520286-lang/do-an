@@ -406,6 +406,34 @@ void removeLine() {
         }
     }
 }
+// Thêm hàm này ngay TRÊN hàm main()
+void handlePause() {
+    int startX = OFFSET_X + (W * 2) + 6;
+    setColor(YELLOW);
+    gotoxy(startX, 10); cout << "=== PAUSED ===";
+    gotoxy(startX, 11); cout << "Bam P de tiep tuc";
+    gotoxy(startX, 12); cout << "Bam Q de thoat";
+    
+    while (true) {
+        if (_kbhit()) {
+            char ch = _getch();
+            if (ch == 'p' || ch == 'P') {
+                // Xóa chữ tạm dừng bên cạnh board khi chơi tiếp
+                gotoxy(startX, 10); cout << "              ";
+                gotoxy(startX, 11); cout << "                 ";
+                gotoxy(startX, 12); cout << "              ";
+                break;
+            }
+            if (ch == 'q' || ch == 'Q') {
+                // Đồng bộ phím Q để thoát ra menu chính nếu đang tạm dừng
+                system("cls");
+                // Ép chương trình nhảy về nhãn start_menu
+                break; 
+            }
+        }
+        Sleep(50);
+    }
+}
 // ... các hàm phía trên giữ nguyên ...
 int showSubMenu(string title) {
     int choice = 0;
@@ -524,11 +552,16 @@ start_game:
             }
         }
         if (gameMode == 1) draw();
+        
         // 1. XỬ LÝ NHẬP PHÍM
-       // 1. XỬ LÝ NHẬP PHÍM
         if (_kbhit()) {
             boardDelBlock();
             int c = _getch();
+
+            if (c == 'p' || c == 'P') {
+                block2Board(); handlePause(); 
+                lastTime = clock(); spawnTime = clock();
+            }
 
             if (c == 0 || c == 224) c = _getch();
 
