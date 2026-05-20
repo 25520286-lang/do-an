@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <ctime>
 #include <string>
+#include <fstream> 
 
 using namespace std;
 
@@ -375,19 +376,29 @@ void removeLine() {
         }
     }
 }
-// ... các hàm phía trên giữ nguyên ...
+
 int showSubMenu(string title) {
     int choice = 0;
     system("cls");
 
     int finalTime = (int)((clock() - sprintStartTime) / CLOCKS_PER_SEC);
     
+    //  LẤY VÀ HIỂN THỊ KỶ LỤC KHI GAME OVER ---
+    int highestRecord = getAndUpdateHighScore(score); 
+
     while (true) {
         int mx = OFFSET_X + 21;
 
-        gotoxy(mx - 6, 5);
+        gotoxy(mx - 6, 4);
         setColor(WHITE);
         cout << "DIEM SO: " << score << " | THOI GIAN: " << finalTime << "s";
+
+        // Nếu là màn hình GAME OVER thì in thêm dòng Kỷ lục cao nhất
+        if (title == "GAME OVER!") {
+            gotoxy(mx - 6, 5);
+            setColor(YELLOW); // Màu vàng cho nổi bật
+            cout << "KY LUC CAO NHAT: " << highestRecord << " DIEM";
+        }
 
         gotoxy(mx, 8); setColor(YELLOW); cout << "=== " << title << " ===";
 
@@ -396,24 +407,71 @@ int showSubMenu(string title) {
             gotoxy(mx , 10 + i);
 
             if (choice == i) {
-                // KHI ĐƯỢC CHỌN (Đang trỏ vào dòng này)
-                if (i == 3) setColor(RED);   // Nếu trỏ vào "Thoat" thì mới hiện màu Đỏ
-                else setColor(CYAN);          // Trỏ vào các dòng khác thì hiện màu Xanh
-
+                if (i == 3) setColor(RED);   
+                else setColor(CYAN);         
                 cout << "> " << options[i] << " <  ";
             }
             else {
-                // KHI KHÔNG ĐƯỢC CHỌN (Tất cả các dòng đều như nhau)
-                setColor(WHITE); // Hoặc GRAY nếu bạn muốn nó mờ hơn
+                setColor(WHITE); 
                 cout << "  " << options[i] << "      ";
             }
         }
 
         char c = _getch();
-        if (c == 224) c = _getch(); // Xử lý phím mũi tên
+        if (c == 224) c = _getch(); 
         if (c == 'w' || c == 'W' || c == 72) choice = (choice - 1 + 4) % 4;
         if (c == 's' || c == 'S' || c == 80) choice = (choice + 1) % 4;
         if (c == 13) return choice;
+    }
+}
+// Hàm kiểm tra, cập nhật và trả về điểm kỷ lục cao nhất
+int getAndUpdateHighScore(int currentScore) {
+    int highScore = 0;
+
+    //  Đọc điểm kỷ lục cũ từ file lên
+    ifstream fileIn("highscore.txt");
+    if (fileIn >> highScore) {
+    } else {
+        highScore = 0; // Nếu file chưa có thì mặc định kỷ lục là 0
+    }
+    fileIn.close();
+
+    // Nếu lượt chơi này phá kỷ lục, cập nhật kỷ lục mới vào file
+    if (currentScore > highScore) {
+        highScore = currentScore;
+        ofstream fileOut("highscore.txt");
+        fileOut << highScore;
+        fileOut.close();
+    }
+
+    return highScore;
+}
+
+void handlePause() {
+    int startX = OFFSET_X + (W * 2) + 6;
+    setColor(YELLOW);
+    gotoxy(startX, 10); cout << "=== PAUSED ===";
+    gotoxy(startX, 11); cout << "Bam P de tiep tuc";
+    gotoxy(startX, 12); cout << "Bam Q de thoat";
+    
+    while (true) {
+        if (_kbhit()) {
+            char ch = _getch();
+            if (ch == 'p' || ch == 'P') {
+                // Xóa chữ tạm dừng bên cạnh board khi chơi tiếp
+                gotoxy(startX, 10); cout << "              ";
+                gotoxy(startX, 11); cout << "                 ";
+                gotoxy(startX, 12); cout << "              ";
+                break;
+            }
+            if (ch == 'q' || ch == 'Q') {
+                // Đồng bộ phím Q để thoát ra menu chính nếu đang tạm dừng
+                system("cls");
+                // Ép chương trình nhảy về nhãn start_menu    
+                break; 
+            }
+        }
+        Sleep(50);
     }
 }
 int main() {
@@ -493,11 +551,16 @@ start_game:
             }
         }
         if (gameMode == 1) draw();
-        // 1. XỬ LÝ NHẬP PHÍM
+
        // 1. XỬ LÝ NHẬP PHÍM
         if (_kbhit()) {
             boardDelBlock();
             int c = _getch();
+            //Tạm dừng khi đang chơi giữa chừng
+            if (c == 'p' || c == 'P') {
+                block2Board(); handlePause(); 
+                lastTime = clock(); spawnTime = clock();
+            }
 
             if (c == 0 || c == 224) c = _getch();
 
